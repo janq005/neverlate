@@ -1,8 +1,19 @@
 'use client'
 
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+
+const secondaryLinks = [
+  { href: '/habits', label: 'Habits' },
+  { href: '/timer', label: 'Timer' },
+  { href: '/schedule', label: 'Schedule' },
+  { href: '/review', label: 'Review' },
+]
 
 export default function Navbar() {
+  const pathname = usePathname()
+  const showSecondary = secondaryLinks.some(l => pathname === l.href)
+
   return (
     <header className="sticky top-0 z-50 bg-zinc-950/80 backdrop-blur-md border-b border-zinc-800/60">
       <div className="max-w-lg mx-auto px-4 h-14 flex items-center justify-between">
@@ -11,9 +22,30 @@ export default function Navbar() {
             NeverLate
           </span>
         </Link>
+
+        <div className="flex items-center gap-1 overflow-x-auto no-scrollbar">
+          {secondaryLinks.map(link => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className={`px-2.5 py-1 rounded-md text-xs font-medium whitespace-nowrap transition-colors ${
+                pathname === link.href
+                  ? 'bg-indigo-500/20 text-indigo-300'
+                  : 'text-zinc-500 hover:text-zinc-300'
+              }`}
+            >
+              {link.label}
+            </Link>
+          ))}
+        </div>
+
         <Link
           href="/settings"
-          className="w-8 h-8 rounded-lg bg-zinc-900/60 border border-zinc-800/60 flex items-center justify-center text-zinc-400 hover:text-zinc-200 transition-colors"
+          className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors flex-shrink-0 ${
+            showSecondary
+              ? 'bg-zinc-900/60 border border-zinc-800/60 text-zinc-400 hover:text-zinc-200'
+              : 'bg-zinc-900/60 border border-zinc-800/60 text-zinc-400 hover:text-zinc-200'
+          }`}
           aria-label="Settings"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">

@@ -104,6 +104,67 @@ export default function SettingsPage() {
           </div>
         </div>
 
+        {/* Google Calendar */}
+        <div className="rounded-xl border border-zinc-800/60 bg-zinc-900/60 p-4 space-y-3">
+          <h2 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Google Calendar</h2>
+          <p className="text-xs text-zinc-500">Used in the Schedule page to show your events and calculate free hours.</p>
+          <div className="space-y-1.5">
+            <label className="text-sm text-zinc-400">API Key</label>
+            <input
+              type="text"
+              placeholder="AIzaSy..."
+              value={settings.googleCalendarApiKey ?? ''}
+              onChange={e => setSettings(s => ({ ...s, googleCalendarApiKey: e.target.value }))}
+              className="w-full rounded-lg bg-zinc-800/60 border border-zinc-700/60 px-3 py-2.5 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-indigo-500/60 transition-colors font-mono"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-sm text-zinc-400">Calendar ID</label>
+            <input
+              type="text"
+              placeholder="yourname@gmail.com or ID from calendar settings"
+              value={settings.googleCalendarId ?? ''}
+              onChange={e => setSettings(s => ({ ...s, googleCalendarId: e.target.value }))}
+              className="w-full rounded-lg bg-zinc-800/60 border border-zinc-700/60 px-3 py-2.5 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-indigo-500/60 transition-colors"
+            />
+          </div>
+        </div>
+
+        {/* Pomodoro */}
+        <div className="rounded-xl border border-zinc-800/60 bg-zinc-900/60 p-4 space-y-3">
+          <h2 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Pomodoro Timer</h2>
+          <div className="space-y-2">
+            <div className="flex justify-between items-center">
+              <label className="text-sm text-zinc-400">Work interval</label>
+              <span className="text-sm font-semibold text-indigo-400">{settings.pomodoroWorkMinutes ?? 25} min</span>
+            </div>
+            <input
+              type="range"
+              min={5}
+              max={60}
+              step={5}
+              value={settings.pomodoroWorkMinutes ?? 25}
+              onChange={e => setSettings(s => ({ ...s, pomodoroWorkMinutes: Number(e.target.value) }))}
+              className="w-full accent-indigo-500"
+            />
+          </div>
+          <div className="space-y-2">
+            <div className="flex justify-between items-center">
+              <label className="text-sm text-zinc-400">Break interval</label>
+              <span className="text-sm font-semibold text-emerald-400">{settings.pomodoroBreakMinutes ?? 5} min</span>
+            </div>
+            <input
+              type="range"
+              min={1}
+              max={30}
+              step={1}
+              value={settings.pomodoroBreakMinutes ?? 5}
+              onChange={e => setSettings(s => ({ ...s, pomodoroBreakMinutes: Number(e.target.value) }))}
+              className="w-full accent-emerald-500"
+            />
+          </div>
+        </div>
+
         {/* Notifications */}
         <div className="rounded-xl border border-zinc-800/60 bg-zinc-900/60 p-4 space-y-3">
           <h2 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Notifications</h2>

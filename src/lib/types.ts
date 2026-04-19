@@ -36,4 +36,8 @@ export interface Settings {
   name: string
   defaultHoursPerDay: number
   notificationsEnabled: boolean
+  googleCalendarApiKey?: string
+  googleCalendarId?: string
+  pomodoroWorkMinutes?: number
+  pomodoroBreakMinutes?: number
 }
