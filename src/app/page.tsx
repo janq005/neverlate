@@ -49,13 +49,12 @@ export default function DashboardPage() {
     setName(settings.name)
     let sorted = getDailyPlan(deadlines)
     const currentEnergy = getEnergyToday()
-    // High energy: hardest tasks first (already sorted by urgency)
-    // Low energy: soften order, put shorter tasks up
     if (currentEnergy === 1) {
       sorted = [...sorted].sort((a, b) => a.deadline.estimatedHours - b.deadline.estimatedHours)
     }
     setPlan(sorted)
-    setUpcoming(getUpcoming(deadlines, 7))
+    const planIds = new Set(sorted.map(t => t.deadline.id))
+    setUpcoming(getUpcoming(deadlines, 7).filter(d => !planIds.has(d.id)))
     setStats(getWeeklyStats(deadlines))
     setEnergy(getEnergyToday())
     setStreak(getStreak())

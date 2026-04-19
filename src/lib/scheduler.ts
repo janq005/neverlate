@@ -1,12 +1,21 @@
 import { Deadline, Urgency } from './types'
 
+export function parseLocalDate(dateStr: string): Date {
+  const [y, m, d] = dateStr.split('-').map(Number)
+  return new Date(y, m - 1, d)
+}
+
+function toLocalDateStr(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 export function calculateStartDate(dueDate: string, estimatedHours: number, hoursPerDay: number): string {
-  const due = new Date(dueDate)
+  const due = parseLocalDate(dueDate)
   const safePace = Math.max(hoursPerDay, 0.1)
   const daysNeeded = Math.ceil(estimatedHours / safePace)
   const start = new Date(due)
   start.setDate(start.getDate() - daysNeeded)
-  return start.toISOString().split('T')[0]
+  return toLocalDateStr(start)
 }
 
 export function getUrgency(deadline: Deadline): Urgency {
@@ -15,11 +24,8 @@ export function getUrgency(deadline: Deadline): Urgency {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
 
-  const startBy = new Date(deadline.startBy)
-  startBy.setHours(0, 0, 0, 0)
-
-  const due = new Date(deadline.dueDate)
-  due.setHours(0, 0, 0, 0)
+  const startBy = parseLocalDate(deadline.startBy)
+  const due = parseLocalDate(deadline.dueDate)
 
   const daysUntilStart = Math.floor((startBy.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
   const daysUntilDue = Math.floor((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
@@ -56,8 +62,7 @@ export function getDailyPlan(deadlines: Deadline[]): DailyTask[] {
 
   const tasks: DailyTask[] = active
     .filter(d => {
-      const startBy = new Date(d.startBy)
-      startBy.setHours(0, 0, 0, 0)
+      const startBy = parseLocalDate(d.startBy)
       return startBy <= today
     })
     .map(d => ({
@@ -79,17 +84,16 @@ export function getUpcoming(deadlines: Deadline[], days = 7): Deadline[] {
   return deadlines
     .filter(d => {
       if (d.status === 'completed') return false
-      const due = new Date(d.dueDate)
+      const due = parseLocalDate(d.dueDate)
       return due >= today && due <= limit
     })
-    .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
+    .sort((a, b) => parseLocalDate(a.dueDate).getTime() - parseLocalDate(b.dueDate).getTime())
 }
 
 export function daysUntil(dateStr: string): number {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
-  const target = new Date(dateStr)
-  target.setHours(0, 0, 0, 0)
+  const target = parseLocalDate(dateStr)
   return Math.floor((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
 }
 

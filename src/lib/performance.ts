@@ -1,4 +1,5 @@
 import { Deadline, PerformanceRecord } from './types'
+import { parseLocalDate } from './scheduler'
 
 const PERF_KEY = 'neverlate_performance'
 
@@ -11,8 +12,7 @@ export function calculatePerformanceRating(deadline: Deadline): {
   const actualHours = deadline.hoursLogged || deadline.estimatedHours
   const speedRatio = deadline.estimatedHours / Math.max(actualHours, 0.1)
 
-  const dueDate = new Date(deadline.dueDate)
-  dueDate.setHours(0, 0, 0, 0)
+  const dueDate = parseLocalDate(deadline.dueDate)
   const completedAt = deadline.completedAt ? new Date(deadline.completedAt) : new Date()
   completedAt.setHours(0, 0, 0, 0)
   const daysEarly = Math.floor((dueDate.getTime() - completedAt.getTime()) / (1000 * 60 * 60 * 24))

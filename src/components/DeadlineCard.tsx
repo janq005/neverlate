@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Deadline } from '@/lib/types'
 import { getUrgency, daysUntil, getUrgencyLabel } from '@/lib/scheduler'
 import { deleteDeadline, updateDeadline } from '@/lib/storage'
@@ -34,63 +34,96 @@ export default function DeadlineCard({ deadline, onUpdate, onDelete }: Props) {
   const [expanded, setExpanded] = useState(false)
   const [showConfidence, setShowConfidence] = useState(false)
   const [celebration, setCelebration] = useState<{ message: string; rating: number; speedRatio: number; hoursSaved: number } | null>(null)
+  const [confirmDelete, setConfirmDelete] = useState(false)
   const [editing, setEditing] = useState(false)
-  const [editTitle, setEditTitle] = useState(deadline.title)
-  const [editDueDate, setEditDueDate] = useState(deadline.dueDate)
-  const [editHours, setEditHours] = useState(deadline.estimatedHours)
+  const [editFields, setEditFields] = useState({
+    title: deadline.title,
+    dueDate: deadline.dueDate,
+    estimatedHours: deadline.estimatedHours,
+    hoursPerDay: deadline.hoursPerDay,
+  })
+
   const urgency = getUrgency(deadline)
   const daysLeft = daysUntil(deadline.dueDate)
   const progress = deadline.estimatedHours > 0 ? (deadline.hoursLogged / deadline.estimatedHours) * 100 : 0
+
+  useEffect(() => {
+    if (!expanded) setConfirmDelete(false)
+  }, [expanded])
+
+  const applyCompletion = (d: Deadline, confidenceRating?: number) => {
+    const isAlreadyCompleted = d.status === 'completed'
+    const completedAt = isAlreadyCompleted ? (d.completedAt || new Date().toISOString()) : new Date().toISOString()
+    const completedDeadline = { ...d, completedAt }
+    const { rating, speedRatio, hoursSaved } = calculatePerformanceRating(completedDeadline)
+
+    const updates: Partial<Deadline> = { performanceRating: rating, speedRatio }
+    if (!isAlreadyCompleted) {
+      updates.status = 'completed'
+      updates.completedAt = completedAt
+    }
+    if (confidenceRating !== undefined) updates.confidence = confidenceRating
+
+    const updated = updateDeadline(d.id, updates)
+    if (updated) savePerformanceRecord(updated)
+    return { updated, rating, speedRatio, hoursSaved }
+  }
+
+  const updateLog = (d: Deadline) => {
+    const logs = getProductivityLogs()
+    const today = getTodayStr()
+    const todayLog = logs.find(l => l.date === today)
+    updateTodayLog({
+      tasksCompleted: (todayLog?.tasksCompleted ?? 0) + 1,
+      hoursLogged: (todayLog?.hoursLogged ?? 0) + d.hoursLogged,
+    })
+  }
 
   const handleComplete = () => {
     setShowConfidence(true)
   }
 
   const handleConfidenceSelect = (confidenceRating: number) => {
-    const completedDeadline = { ...deadline, completedAt: new Date().toISOString() }
-    const { rating, speedRatio, hoursSaved } = calculatePerformanceRating(completedDeadline)
-    const updated = updateDeadline(deadline.id, {
-      status: 'completed',
-      completedAt: completedDeadline.completedAt,
-      confidence: confidenceRating,
-      performanceRating: rating,
-      speedRatio,
-    })
-    if (updated) savePerformanceRecord(updated)
-    // Update productivity log
-    const logs = getProductivityLogs()
-    const today = getTodayStr()
-    const todayLog = logs.find(l => l.date === today)
-    updateTodayLog({
-      tasksCompleted: (todayLog?.tasksCompleted ?? 0) + 1,
-      hoursLogged: (todayLog?.hoursLogged ?? 0) + deadline.hoursLogged,
-    })
+    const wasCompleted = deadline.status === 'completed'
+    const { updated, rating, speedRatio, hoursSaved } = applyCompletion(deadline, confidenceRating)
+    if (!wasCompleted) updateLog(deadline)
     setShowConfidence(false)
     setCelebration({ message: getPerformanceMessage(rating, speedRatio, hoursSaved), rating, speedRatio, hoursSaved })
     if (updated && onUpdate) onUpdate(updated)
   }
 
   const handleDelete = () => {
-    if (!confirm(`Delete "${deadline.title}"?`)) return
+    if (!confirmDelete) { setConfirmDelete(true); return }
     deleteDeadline(deadline.id)
     if (onDelete) onDelete(deadline.id)
   }
 
   const handleTimeUpdate = (updated: Deadline) => {
+    if (updated.status === 'completed' && deadline.status !== 'completed') {
+      updateLog(updated)
+      setShowConfidence(true)
+    }
     if (onUpdate) onUpdate(updated)
   }
 
-  const handleEditSave = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!editTitle.trim() || !editDueDate) return
-    const updated = updateDeadline(deadline.id, {
-      title: editTitle.trim(),
-      dueDate: editDueDate,
-      estimatedHours: editHours,
+  const handleEditOpen = () => {
+    setEditFields({
+      title: deadline.title,
+      dueDate: deadline.dueDate,
+      estimatedHours: deadline.estimatedHours,
+      hoursPerDay: deadline.hoursPerDay,
     })
-    setEditing(false)
-    if (updated && onUpdate) onUpdate(updated)
+    setEditing(true)
   }
+
+  const handleEditSave = () => {
+    if (!editFields.title.trim()) return
+    const updated = updateDeadline(deadline.id, editFields)
+    if (updated && onUpdate) onUpdate(updated)
+    setEditing(false)
+  }
+
+  const today = new Date().toISOString().split('T')[0]
 
   return (
     <div
@@ -146,7 +179,7 @@ export default function DeadlineCard({ deadline, onUpdate, onDelete }: Props) {
         </div>
       </button>
 
-      {/* Confidence rating modal */}
+      {/* Confidence rating */}
       {showConfidence && (
         <div className="px-4 pb-4 border-t border-zinc-800/60 pt-3">
           <p className="text-sm font-medium text-zinc-200 mb-1">How confident did you feel?</p>
@@ -202,6 +235,77 @@ export default function DeadlineCard({ deadline, onUpdate, onDelete }: Props) {
         </div>
       )}
 
+      {/* Edit form */}
+      {editing && (
+        <div className="px-4 pb-4 space-y-3 border-t border-zinc-800/60 pt-3">
+          <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Edit</p>
+          <div className="space-y-1">
+            <label className="text-xs text-zinc-500">Title</label>
+            <input
+              type="text"
+              value={editFields.title}
+              onChange={e => setEditFields(f => ({ ...f, title: e.target.value }))}
+              className="w-full rounded-lg bg-zinc-800/60 border border-zinc-700/60 px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-indigo-500/60 transition-colors"
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs text-zinc-500">Due Date</label>
+            <input
+              type="date"
+              value={editFields.dueDate}
+              min={today}
+              onChange={e => setEditFields(f => ({ ...f, dueDate: e.target.value }))}
+              className="w-full rounded-lg bg-zinc-800/60 border border-zinc-700/60 px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-indigo-500/60 transition-colors [color-scheme:dark]"
+            />
+          </div>
+          <div className="space-y-1">
+            <div className="flex justify-between">
+              <label className="text-xs text-zinc-500">Estimated Hours</label>
+              <span className="text-xs text-indigo-400">{editFields.estimatedHours}h</span>
+            </div>
+            <input
+              type="range"
+              min={0.5}
+              max={100}
+              step={0.5}
+              value={editFields.estimatedHours}
+              onChange={e => setEditFields(f => ({ ...f, estimatedHours: Number(e.target.value) }))}
+              className="w-full accent-indigo-500"
+            />
+          </div>
+          <div className="space-y-1">
+            <div className="flex justify-between">
+              <label className="text-xs text-zinc-500">Hours / Day</label>
+              <span className="text-xs text-indigo-400">{editFields.hoursPerDay}h</span>
+            </div>
+            <input
+              type="range"
+              min={0.5}
+              max={12}
+              step={0.5}
+              value={editFields.hoursPerDay}
+              onChange={e => setEditFields(f => ({ ...f, hoursPerDay: Number(e.target.value) }))}
+              className="w-full accent-indigo-500"
+            />
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={handleEditSave}
+              disabled={!editFields.title.trim()}
+              className="flex-1 rounded-lg bg-indigo-500/20 border border-indigo-500/30 py-2 text-xs font-medium text-indigo-300 hover:bg-indigo-500/30 disabled:opacity-40 transition-colors"
+            >
+              Save
+            </button>
+            <button
+              onClick={() => setEditing(false)}
+              className="flex-1 rounded-lg bg-zinc-800/40 border border-zinc-700/60 py-2 text-xs font-medium text-zinc-400 hover:bg-zinc-700/40 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
       {expanded && !showConfidence && !celebration && !editing && (
         <div className="px-4 pb-4 space-y-3 border-t border-zinc-800/60 pt-3">
           {deadline.description && (
@@ -210,11 +314,11 @@ export default function DeadlineCard({ deadline, onUpdate, onDelete }: Props) {
           <div className="grid grid-cols-2 gap-2 text-xs text-zinc-400">
             <div>
               <span className="text-zinc-500">Due:</span>{' '}
-              <span className="text-zinc-300">{new Date(deadline.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+              <span className="text-zinc-300">{new Date(deadline.dueDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
             </div>
             <div>
               <span className="text-zinc-500">Start by:</span>{' '}
-              <span className="text-zinc-300">{new Date(deadline.startBy).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+              <span className="text-zinc-300">{new Date(deadline.startBy + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
             </div>
             <div>
               <span className="text-zinc-500">Pace:</span>{' '}
@@ -230,92 +334,48 @@ export default function DeadlineCard({ deadline, onUpdate, onDelete }: Props) {
             <TimeLogger deadline={deadline} onUpdate={handleTimeUpdate} />
           )}
 
-          <div className="flex gap-2 pt-1">
+          <div className="space-y-2 pt-1">
             {deadline.status !== 'completed' && (
+              <div className="flex gap-2">
+                <button
+                  onClick={handleComplete}
+                  className="flex-1 rounded-lg bg-emerald-500/20 border border-emerald-500/30 py-1.5 text-xs font-medium text-emerald-300 hover:bg-emerald-500/30 transition-colors"
+                >
+                  Mark Complete
+                </button>
+                <button
+                  onClick={handleEditOpen}
+                  className="flex-1 rounded-lg bg-zinc-800/40 border border-zinc-700/60 py-1.5 text-xs font-medium text-zinc-400 hover:bg-zinc-700/40 transition-colors"
+                >
+                  Edit
+                </button>
+              </div>
+            )}
+            {confirmDelete ? (
+              <div className="flex gap-2">
+                <button
+                  onClick={handleDelete}
+                  className="flex-1 rounded-lg bg-red-500/20 border border-red-500/40 py-1.5 text-xs font-medium text-red-300 hover:bg-red-500/30 transition-colors"
+                >
+                  Confirm Delete
+                </button>
+                <button
+                  onClick={() => setConfirmDelete(false)}
+                  className="flex-1 rounded-lg bg-zinc-800/40 border border-zinc-700/60 py-1.5 text-xs font-medium text-zinc-400 hover:bg-zinc-700/40 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
               <button
-                onClick={handleComplete}
-                className="flex-1 rounded-lg bg-emerald-500/20 border border-emerald-500/30 py-1.5 text-xs font-medium text-emerald-300 hover:bg-emerald-500/30 transition-colors"
+                onClick={handleDelete}
+                className="w-full rounded-lg bg-red-500/10 border border-red-500/20 py-1.5 text-xs font-medium text-red-400 hover:bg-red-500/20 transition-colors"
               >
-                Mark Complete
+                Delete
               </button>
             )}
-            {deadline.status !== 'completed' && (
-              <button
-                onClick={() => {
-                  setEditTitle(deadline.title)
-                  setEditDueDate(deadline.dueDate)
-                  setEditHours(deadline.estimatedHours)
-                  setEditing(true)
-                }}
-                className="flex-1 rounded-lg bg-indigo-500/10 border border-indigo-500/20 py-1.5 text-xs font-medium text-indigo-400 hover:bg-indigo-500/20 transition-colors"
-              >
-                Edit
-              </button>
-            )}
-            <button
-              onClick={handleDelete}
-              className="flex-1 rounded-lg bg-red-500/10 border border-red-500/20 py-1.5 text-xs font-medium text-red-400 hover:bg-red-500/20 transition-colors"
-            >
-              Delete
-            </button>
           </div>
         </div>
-      )}
-
-      {editing && (
-        <form onSubmit={handleEditSave} className="px-4 pb-4 space-y-3 border-t border-zinc-800/60 pt-3">
-          <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Edit Deadline</p>
-          <div className="space-y-1">
-            <label className="text-[11px] text-zinc-500">Title</label>
-            <input
-              type="text"
-              value={editTitle}
-              onChange={e => setEditTitle(e.target.value)}
-              required
-              className="w-full rounded-lg bg-zinc-800/60 border border-zinc-700/60 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-indigo-500/60 transition-colors"
-            />
-          </div>
-          <div className="space-y-1">
-            <label className="text-[11px] text-zinc-500">Due Date</label>
-            <input
-              type="date"
-              value={editDueDate}
-              onChange={e => setEditDueDate(e.target.value)}
-              required
-              className="w-full rounded-lg bg-zinc-800/60 border border-zinc-700/60 px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-indigo-500/60 transition-colors [color-scheme:dark]"
-            />
-          </div>
-          <div className="space-y-1">
-            <div className="flex justify-between items-center">
-              <label className="text-[11px] text-zinc-500">Estimated Hours</label>
-              <span className="text-xs font-semibold text-indigo-400">{editHours}h</span>
-            </div>
-            <input
-              type="range"
-              min={0.5}
-              max={100}
-              step={0.5}
-              value={editHours}
-              onChange={e => setEditHours(Number(e.target.value))}
-              className="w-full accent-indigo-500"
-            />
-          </div>
-          <div className="flex gap-2 pt-1">
-            <button
-              type="submit"
-              className="flex-1 rounded-lg bg-indigo-500/20 border border-indigo-500/30 py-1.5 text-xs font-medium text-indigo-300 hover:bg-indigo-500/30 transition-colors"
-            >
-              Save
-            </button>
-            <button
-              type="button"
-              onClick={() => setEditing(false)}
-              className="flex-1 rounded-lg bg-zinc-800/60 border border-zinc-700/60 py-1.5 text-xs font-medium text-zinc-400 hover:bg-zinc-700/60 transition-colors"
-            >
-              Cancel
-            </button>
-          </div>
-        </form>
       )}
     </div>
   )
