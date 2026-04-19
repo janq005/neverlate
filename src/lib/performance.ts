@@ -23,8 +23,8 @@ export function calculatePerformanceRating(deadline: Deadline): {
     1
   )
 
-  const timeScore = daysEarly > 0 ? daysEarly / totalDays : 0
-  const rawRating = speedRatio * (1 + timeScore) * 5
+  const timeScore = daysEarly > 0 ? Math.min(daysEarly / totalDays, 1) : 0
+  const rawRating = speedRatio * 7 + timeScore * 3
   const rating = Math.min(10, Math.max(1, Math.round(rawRating * 10) / 10))
   const hoursSaved = deadline.estimatedHours - actualHours
 
@@ -36,9 +36,9 @@ export function getPerformanceMessage(rating: number, speedRatio: number, hoursS
   if (rating >= 9) return `⚡ ${rating.toFixed(1)}/10 — Elite. ${saved}h faster than estimated. You don't just meet the bar — you move it.`
   if (rating >= 7.5) return `🔥 ${rating.toFixed(1)}/10 — You crushed it. ${saved}h faster than planned.`
   if (rating >= 6) return `✅ ${rating.toFixed(1)}/10 — Solid execution. Room to push harder.`
-  if (rating >= 4) return `📊 ${rating.toFixed(1)}/10 — Got it done. But winners don't settle for average.`
-  if (speedRatio < 0.8) return `⚠️ ${rating.toFixed(1)}/10 — Took longer than expected. Recalibrate your estimates.`
-  return `🎯 ${rating.toFixed(1)}/10 — Done. Next time, own the clock.`
+  if (rating >= 4) return `📊 ${rating.toFixed(1)}/10 — Done. Consistency compounds — keep showing up.`
+  if (speedRatio < 0.8) return `⚠️ ${rating.toFixed(1)}/10 — Took ${saved}h longer than expected. Adjust your estimates.`
+  return `🎯 ${rating.toFixed(1)}/10 — Finished. Own the clock next time.`
 }
 
 export function savePerformanceRecord(deadline: Deadline): PerformanceRecord {

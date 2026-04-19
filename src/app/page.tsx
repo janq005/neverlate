@@ -10,7 +10,7 @@ import CategoryBadge from '@/components/CategoryBadge'
 import TimeLogger from '@/components/TimeLogger'
 import { requestNotificationPermission, scheduleDailyMorningNotification } from '@/lib/notifications'
 import { getDailyQuote } from '@/lib/quotes'
-import { EnergyLevel, getEnergyToday, setEnergyToday, getStreak, updateTodayLog } from '@/lib/productivity'
+import { EnergyLevel, getEnergyToday, setEnergyToday, clearEnergyToday, getStreak, updateTodayLog } from '@/lib/productivity'
 import { getAverageRating } from '@/lib/performance'
 
 function greeting() {
@@ -130,7 +130,7 @@ export default function DashboardPage() {
               <p className="text-xs text-zinc-400 mt-0.5">{energyText[energy]}</p>
             </div>
             <button
-              onClick={() => { setEnergyToday(1 as EnergyLevel); setEnergy(null) }}
+              onClick={() => { clearEnergyToday(); setEnergy(null); load() }}
               className="text-xs text-zinc-600 hover:text-zinc-400 transition-colors"
             >
               reset
@@ -154,9 +154,16 @@ export default function DashboardPage() {
 
       {/* Today's Plan */}
       <section>
-        <h2 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-3">
-          Today&apos;s Plan
-        </h2>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
+            Today&apos;s Plan
+          </h2>
+          {plan.length > 0 && (
+            <span className="text-xs text-zinc-500">
+              {plan.reduce((s, t) => s + t.hoursToday, 0).toFixed(1)}h total
+            </span>
+          )}
+        </div>
         {plan.length === 0 ? (
           <div className="rounded-xl border border-zinc-800/60 bg-zinc-900/60 p-6 text-center">
             <p className="text-2xl mb-2">🎉</p>

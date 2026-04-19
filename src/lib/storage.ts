@@ -63,14 +63,8 @@ export function logTime(id: string, hours: number): Deadline | null {
   const idx = deadlines.findIndex(d => d.id === id)
   if (idx === -1) return null
 
-  deadlines[idx].hoursLogged = Math.min(
-    deadlines[idx].hoursLogged + hours,
-    deadlines[idx].estimatedHours
-  )
-  if (deadlines[idx].hoursLogged >= deadlines[idx].estimatedHours) {
-    deadlines[idx].status = 'completed'
-    deadlines[idx].completedAt = new Date().toISOString()
-  } else if (deadlines[idx].status === 'not_started') {
+  deadlines[idx].hoursLogged = Math.round((deadlines[idx].hoursLogged + hours) * 100) / 100
+  if (deadlines[idx].status === 'not_started') {
     deadlines[idx].status = 'in_progress'
   }
   saveDeadlines(deadlines)

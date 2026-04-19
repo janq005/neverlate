@@ -44,7 +44,7 @@ export default function AddPage() {
     if (!title.trim() || !dueDate) return
 
     addDeadline({ title, description, category, dueDate, estimatedHours, hoursPerDay })
-    router.push('/deadlines')
+    router.push('/')
   }
 
   const today = new Date().toISOString().split('T')[0]

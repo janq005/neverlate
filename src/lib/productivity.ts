@@ -32,6 +32,11 @@ export function setEnergyToday(level: EnergyLevel): void {
   localStorage.setItem(ENERGY_KEY, JSON.stringify({ date: getTodayStr(), level }))
 }
 
+export function clearEnergyToday(): void {
+  if (typeof window === 'undefined') return
+  localStorage.removeItem(ENERGY_KEY)
+}
+
 export function getProductivityLogs(): DayLog[] {
   if (typeof window === 'undefined') return []
   try {

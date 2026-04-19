@@ -110,8 +110,8 @@ export default function DeadlineCard({ deadline, onUpdate, onDelete }: Props) {
 
         <div className="mt-3">
           <div className="flex justify-between text-[11px] text-zinc-400 mb-1">
-            <span>{deadline.hoursLogged}h logged</span>
-            <span>{deadline.estimatedHours}h total</span>
+            <span>{deadline.hoursLogged}h / {deadline.estimatedHours}h</span>
+            <span className={progress >= 100 ? 'text-emerald-400' : ''}>{Math.round(Math.min(progress, 100))}%</span>
           </div>
           <div className="w-full bg-zinc-800 rounded-full h-1.5">
             <div
@@ -147,10 +147,10 @@ export default function DeadlineCard({ deadline, onUpdate, onDelete }: Props) {
             ))}
           </div>
           <button
-            onClick={() => setShowConfidence(false)}
+            onClick={() => handleConfidenceSelect(3)}
             className="mt-2 w-full text-xs text-zinc-600 hover:text-zinc-400 transition-colors py-1"
           >
-            skip
+            skip (neutral)
           </button>
         </div>
       )}
