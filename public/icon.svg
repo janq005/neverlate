@@ -5,16 +5,32 @@
       <stop offset="100%" stop-color="#4338ca"/>
     </linearGradient>
   </defs>
+
+  <!-- Background -->
   <rect width="512" height="512" rx="108" fill="url(#bgGrad)"/>
+
+  <!-- Clock shadow ring -->
   <circle cx="256" cy="248" r="155" fill="white" opacity="0.12"/>
+
+  <!-- Clock face -->
   <circle cx="256" cy="248" r="145" fill="white"/>
+
+  <!-- Tick marks at 12, 3, 6, 9 -->
   <line x1="256" y1="118" x2="256" y2="140" stroke="#6366f1" stroke-width="10" stroke-linecap="round"/>
   <line x1="386" y1="248" x2="364" y2="248" stroke="#6366f1" stroke-width="10" stroke-linecap="round"/>
   <line x1="256" y1="378" x2="256" y2="356" stroke="#6366f1" stroke-width="10" stroke-linecap="round"/>
   <line x1="126" y1="248" x2="148" y2="248" stroke="#6366f1" stroke-width="10" stroke-linecap="round"/>
+
+  <!-- Hour hand at 10 o'clock -->
   <line x1="256" y1="248" x2="187" y2="208" stroke="#4338ca" stroke-width="14" stroke-linecap="round"/>
+
+  <!-- Minute hand at 2 o'clock -->
   <line x1="256" y1="248" x2="343" y2="198" stroke="#4338ca" stroke-width="10" stroke-linecap="round"/>
+
+  <!-- Center cap -->
   <circle cx="256" cy="248" r="13" fill="#4338ca"/>
+
+  <!-- Lightning bolt badge -->
   <circle cx="392" cy="396" r="56" fill="#4338ca"/>
   <circle cx="392" cy="396" r="46" fill="#fbbf24"/>
   <path d="M398,371 L378,397 L390,397 L384,421 L409,395 L396,395 Z" fill="#92400e"/>

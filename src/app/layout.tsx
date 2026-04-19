@@ -11,6 +11,10 @@ export const metadata: Metadata = {
   title: 'NeverLate',
   description: 'Personal deadline management — never miss what matters',
   manifest: '/manifest.json',
+  icons: {
+    icon: '/favicon.svg',
+    apple: '/icon.svg',
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
