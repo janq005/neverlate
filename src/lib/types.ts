@@ -1,5 +1,4 @@
 export type Category = 'university' | 'clinic' | 'personal' | 'projects'
-export type Priority = 'low' | 'medium' | 'high' | 'critical'
 export type Status = 'not_started' | 'in_progress' | 'completed' | 'overdue'
 export type Urgency = 'green' | 'yellow' | 'orange' | 'red'
 

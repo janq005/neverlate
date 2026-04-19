@@ -8,10 +8,25 @@ export function getDeadlines(): Deadline[] {
   if (typeof window === 'undefined') return []
   try {
     const raw = localStorage.getItem(DEADLINES_KEY)
-    return raw ? JSON.parse(raw) : []
+    const deadlines: Deadline[] = raw ? JSON.parse(raw) : []
+    return syncOverdueStatuses(deadlines)
   } catch {
     return []
   }
+}
+
+function syncOverdueStatuses(deadlines: Deadline[]): Deadline[] {
+  const today = new Date().toISOString().split('T')[0]
+  let changed = false
+  const synced = deadlines.map(d => {
+    if (d.status !== 'completed' && d.status !== 'overdue' && d.dueDate < today) {
+      changed = true
+      return { ...d, status: 'overdue' as const }
+    }
+    return d
+  })
+  if (changed) localStorage.setItem(DEADLINES_KEY, JSON.stringify(synced))
+  return synced
 }
 
 export function saveDeadlines(deadlines: Deadline[]): void {
@@ -71,13 +86,15 @@ export function logTime(id: string, hours: number): Deadline | null {
   return deadlines[idx]
 }
 
+const DEFAULT_SETTINGS: Settings = { name: '', defaultHoursPerDay: 1.5, notificationsEnabled: true }
+
 export function getSettings(): Settings {
-  if (typeof window === 'undefined') return { name: 'Titas', defaultHoursPerDay: 1.5, notificationsEnabled: true }
+  if (typeof window === 'undefined') return DEFAULT_SETTINGS
   try {
     const raw = localStorage.getItem(SETTINGS_KEY)
-    return raw ? JSON.parse(raw) : { name: 'Titas', defaultHoursPerDay: 1.5, notificationsEnabled: true }
+    return raw ? JSON.parse(raw) : DEFAULT_SETTINGS
   } catch {
-    return { name: 'Titas', defaultHoursPerDay: 1.5, notificationsEnabled: true }
+    return DEFAULT_SETTINGS
   }
 }
 
@@ -91,7 +108,20 @@ export function exportData(): string {
 }
 
 export function importData(json: string): void {
-  const data = JSON.parse(json)
-  if (data.deadlines) saveDeadlines(data.deadlines)
-  if (data.settings) saveSettings(data.settings)
+  let data: unknown
+  try {
+    data = JSON.parse(json)
+  } catch {
+    throw new Error('Invalid JSON')
+  }
+  if (!data || typeof data !== 'object') throw new Error('Invalid data format')
+  const d = data as Record<string, unknown>
+  if (d.deadlines !== undefined) {
+    if (!Array.isArray(d.deadlines)) throw new Error('deadlines must be an array')
+    saveDeadlines(d.deadlines as Deadline[])
+  }
+  if (d.settings !== undefined) {
+    if (typeof d.settings !== 'object' || d.settings === null) throw new Error('settings must be an object')
+    saveSettings(d.settings as Settings)
+  }
 }

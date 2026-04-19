@@ -2,9 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { getDeadlines } from '@/lib/storage'
-import { Deadline, Category, Status } from '@/lib/types'
-import { getUrgency, daysUntil } from '@/lib/scheduler'
-import { Urgency } from '@/lib/types'
+import { Deadline, Category, Urgency } from '@/lib/types'
+import { getUrgency } from '@/lib/scheduler'
 import DeadlineCard from '@/components/DeadlineCard'
 
 type SortKey = 'dueDate' | 'urgency' | 'createdAt'
@@ -14,7 +13,6 @@ const urgencyOrder: Record<Urgency, number> = { red: 0, orange: 1, yellow: 2, gr
 export default function DeadlinesPage() {
   const [deadlines, setDeadlines] = useState<Deadline[]>([])
   const [filterCategory, setFilterCategory] = useState<Category | 'all'>('all')
-  const [filterStatus, setFilterStatus] = useState<Status | 'active' | 'all'>('active')
   const [sortBy, setSortBy] = useState<SortKey>('urgency')
   const [showDone, setShowDone] = useState(false)
 
@@ -30,10 +28,6 @@ export default function DeadlinesPage() {
 
   const filtered = active
     .filter(d => filterCategory === 'all' || d.category === filterCategory)
-    .filter(d => {
-      if (filterStatus === 'all' || filterStatus === 'active') return true
-      return d.status === filterStatus
-    })
     .sort((a, b) => {
       if (sortBy === 'dueDate') return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()
       if (sortBy === 'urgency') return urgencyOrder[getUrgency(a)] - urgencyOrder[getUrgency(b)]

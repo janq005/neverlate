@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { getDeadlines, getSettings } from '@/lib/storage'
+import { getDeadlines, getSettings, saveSettings } from '@/lib/storage'
 import { getDailyPlan, getUpcoming, getWeeklyStats, daysUntil, DailyTask } from '@/lib/scheduler'
 import { Deadline } from '@/lib/types'
 import UrgencyDot from '@/components/UrgencyDot'
@@ -36,7 +36,8 @@ export default function DashboardPage() {
   const [plan, setPlan] = useState<DailyTask[]>([])
   const [upcoming, setUpcoming] = useState<Deadline[]>([])
   const [stats, setStats] = useState({ active: 0, completedThisWeek: 0, onTrackPct: 100 })
-  const [name, setName] = useState('Titas')
+  const [name, setName] = useState('')
+  const [nameInput, setNameInput] = useState('')
   const [quote] = useState(getDailyQuote())
   const [energy, setEnergy] = useState<EnergyLevel | null>(null)
   const [streak, setStreak] = useState(0)
@@ -78,6 +79,49 @@ export default function DashboardPage() {
     updateTodayLog({ energyLevel: level })
     setEnergy(level)
     load()
+  }
+
+  if (!name) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6 px-4">
+        <div className="text-center space-y-2">
+          <p className="text-4xl">⏰</p>
+          <h1 className="text-2xl font-bold text-zinc-100">Welcome to NeverLate</h1>
+          <p className="text-zinc-400 text-sm">Never miss a deadline again.</p>
+        </div>
+        <form
+          className="w-full max-w-xs space-y-4"
+          onSubmit={e => {
+            e.preventDefault()
+            const n = nameInput.trim()
+            if (!n) return
+            const settings = getSettings()
+            saveSettings({ ...settings, name: n })
+            setName(n)
+            load()
+          }}
+        >
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-zinc-400 uppercase tracking-wider">What&apos;s your name?</label>
+            <input
+              type="text"
+              value={nameInput}
+              onChange={e => setNameInput(e.target.value)}
+              placeholder="e.g. Alex"
+              autoFocus
+              className="w-full rounded-xl bg-zinc-900/60 border border-zinc-800/60 px-4 py-3 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/40 transition-colors"
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={!nameInput.trim()}
+            className="w-full rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:bg-zinc-800 disabled:text-zinc-600 text-white font-semibold py-3.5 text-sm transition-colors"
+          >
+            Get started →
+          </button>
+        </form>
+      </div>
+    )
   }
 
   return (

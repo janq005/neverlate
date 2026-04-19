@@ -1,7 +1,7 @@
-'use client'
-
 import { Deadline } from './types'
 import { getDailyPlan, getNotificationText, getUrgency } from './scheduler'
+
+const NOTIF_DATE_KEY = 'neverlate_last_notif'
 
 export async function requestNotificationPermission(): Promise<boolean> {
   if (typeof window === 'undefined' || !('Notification' in window)) return false
@@ -18,6 +18,9 @@ export function showNotification(title: string, body: string, icon = '/icons/ico
 
 export function scheduleDailyMorningNotification(deadlines: Deadline[]) {
   if (typeof window === 'undefined') return
+  const today = new Date().toISOString().split('T')[0]
+  if (localStorage.getItem(NOTIF_DATE_KEY) === today) return
+
   const plan = getDailyPlan(deadlines)
   if (plan.length === 0) return
 
@@ -26,6 +29,7 @@ export function scheduleDailyMorningNotification(deadlines: Deadline[]) {
     '☀️ NeverLate — Today\'s Plan',
     `${plan.length} task${plan.length > 1 ? 's' : ''}, ${totalHours.toFixed(1)} hours total`
   )
+  localStorage.setItem(NOTIF_DATE_KEY, today)
 }
 
 export function checkStartByAlerts(deadlines: Deadline[]) {

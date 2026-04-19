@@ -2,7 +2,8 @@ import { Deadline, Urgency } from './types'
 
 export function calculateStartDate(dueDate: string, estimatedHours: number, hoursPerDay: number): string {
   const due = new Date(dueDate)
-  const daysNeeded = Math.ceil(estimatedHours / hoursPerDay)
+  const safePace = Math.max(hoursPerDay, 0.1)
+  const daysNeeded = Math.ceil(estimatedHours / safePace)
   const start = new Date(due)
   start.setDate(start.getDate() - daysNeeded)
   return start.toISOString().split('T')[0]
@@ -24,12 +25,11 @@ export function getUrgency(deadline: Deadline): Urgency {
   const daysUntilDue = Math.floor((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
 
   const hoursRemaining = deadline.estimatedHours - deadline.hoursLogged
-  const hoursStillNeeded = hoursRemaining
 
   // Red: mathematically impossible at current pace
   if (daysUntilDue < 0) return 'red'
-  if (daysUntilDue === 0 && hoursStillNeeded > 0) return 'red'
-  if (daysUntilDue > 0 && hoursStillNeeded / daysUntilDue > 16) return 'red'
+  if (daysUntilDue === 0 && hoursRemaining > 0) return 'red'
+  if (daysUntilDue > 0 && hoursRemaining / daysUntilDue > 16) return 'red'
 
   // Orange: behind schedule but catchable if you increase pace
   if (daysUntilStart < 0) return 'orange'
